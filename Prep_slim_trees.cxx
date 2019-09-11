@@ -187,15 +187,98 @@ void Prep_slim_trees(){
   ntree_ggHZZ->Branch("phi_1", &phi_1);
   ntree_ggHZZ->Branch("phi", &phi);
   
+  // First Z
+  TLorentzVector lep1Z1;
+  TLorentzVector lep2Z1;
+  // Second Z
+  TLorentzVector lep1Z2;
+  TLorentzVector lep2Z2;
+  //Defining appropriate vectors for COM
+  TLorentzVector vecZ1;  
+  TLorentzVector vecZ2;
+  TLorentzVector vecHiggs;
+  TVector3 q1, q2, q11, q12, q21, q22;
+  TVector3 n1bs, n1,n2bs,n2, nsc;
+  TVector3 nz(0,0,1);
+  int x= 0;
+  int n=0;
 
   Long64_t nentries_qqZZ = chain_qqZZ->GetEntries();
   Long64_t nentries_ggZZ = chain_ggZZ->GetEntries();
   Long64_t nentries_ggHZZ = chain_ggHZZ->GetEntries();
   Long64_t nbytes = 0, nb = 0;
-  
-  cout <<" qqZZ " << nentries_qqZZ << endl;
-  cout <<" ggZZ " << nentries_ggZZ << endl;
-  cout <<" ggHZZ " << nentries_ggHZZ << endl;
 
+  for (Long64_t jentry=0; jentry <nentries_qqZZ; jentry++){
+    chain_qqZZ->GetEntry(jentry);
 
+    // Prepare 4-vectors for the two leptons of the first Z
+    lep1Z1.SetPtEtaPhiM(lepton_pt->at(0), lepton_eta->at(0), lepton_phi->at(0), 0);
+    lep2Z1.SetPtEtaPhiM(lepton_pt->at(1), lepton_eta->at(1), lepton_phi->at(1), 0);
+    // Prepare 4-vectors for the two leptons of the second Z
+    lep1Z2.SetPtEtaPhiM(lepton_pt->at(2), lepton_eta->at(2), lepton_phi->at(2), 0);
+    lep2Z2.SetPtEtaPhiM(lepton_pt->at(3), lepton_eta->at(3), lepton_phi->at(3), 0);
+
+    // Build the Higgs 4-vector
+    vecZ1    = (lep1Z1 + lep2Z1);
+    vecZ2    = (lep1Z2 + lep2Z2);
+    vecHiggs = vecZ1 + vecZ2;
+
+    Z1_m= vecZ1.M();
+    Z2_m= vecZ2.M();
+
+    //Boost to the rest frame of the Higgs
+    vecZ1.Boost(-vecHiggs.BoostVector());
+    vecZ2.Boost(-vecHiggs.BoostVector());
+
+    //calculating CosTheta_str
+    cos_theta_str = TMath::Abs(vecZ1.CosTheta());
+    //Calculating cos theta 1 and theta 2
+
+    // Boosting all leptons to Z rest frame
+    lep1Z1.Boost(-vecZ1.BoostVector());
+    lep2Z1.Boost(-vecZ1.BoostVector());
+    lep1Z2.Boost(-vecZ2.BoostVector());
+    lep2Z2.Boost(-vecZ2.BoostVector());
+    //Declaring the 3 momentum for Zs
+    q1 = vecZ1.BoostVector();
+    q2 = vecZ2.BoostVector();
+    //Declaring the 3 momentum for the 4 leptons
+    q11 = lep1Z1.BoostVector();
+    q21 = lep2Z1.BoostVector();
+    q12 = lep1Z2.BoostVector();
+    q22 = lep2Z2.BoostVector();
+    // Actual calculation
+    cos_theta_1 = -q2.Dot(q11)/q2.Mag()*q11.Mag();
+    //Boosting Zs to rest frame of higgs
+    vecZ1.Boost(-vecHiggs.BoostVector());
+    vecZ2.Boost(-vecHiggs.BoostVector());
+    //Boosting leptons to the Rest frame of the higgs
+    lep1Z1.Boost(-vecHiggs.BoostVector());
+    lep2Z1.Boost(-vecHiggs.BoostVector());
+    lep1Z2.Boost(-vecHiggs.BoostVector());
+    lep2Z2.Boost(-vecHiggs.BoostVector());
+    //Declaring the 3 momentum for Zs
+    q1 = vecZ1.BoostVector();
+    q2 = vecZ2.BoostVector();
+    ////Declaring the 3 momentum for leptons
+    q11 = lep1Z1.BoostVector();
+    q21 = lep2Z1.BoostVector();
+    q12 = lep1Z2.BoostVector();
+    q22 = lep2Z2.BoostVector();
+    //declaring unit vectors
+
+    n1bs = q11.Cross(q21);
+    n1 = n1bs.Unit();
+    n2bs = (q12.Cross(q22));
+    n2 = n2bs.Unit();
+    nsc = (nz.Cross(q1)).Unit();
+
+    //Formula for phi and phi1
+    phi = (q1.Dot(n1.Cross(n2)))/abs(q1.Dot(n1.Cross(n2)))*acos(-n1.Dot(n2));
+    phi_1 = (q1.Dot(n1.Cross(nsc)))/abs(q1.Dot(n1.Cross(nsc)))*acos(n1.Dot(nsc));
+
+    ntree_qqZZ->Fill();     
+  }
+  ntree_qqZZ->Print();
+  file_qqZZ->Write();
 }
